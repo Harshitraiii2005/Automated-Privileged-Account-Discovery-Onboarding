@@ -40,7 +40,9 @@ services:
     security_opt: ["no-new-privileges:true"]
     depends_on:
       ldap: { condition: service_healthy }
-    # Copy the TLS key in with vault-only ownership, then hand over to the stock entrypoint.
+    # Start as root only to copy the TLS key in with vault-only ownership (the image's default user
+    # cannot read a 0600 key owned by the host user); the stock entrypoint then drops to `vault`.
+    user: "0:0"
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
