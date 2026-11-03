@@ -32,6 +32,9 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Full pipeline on a fresh lab (make demo)
         run: make demo
+      - name: Lab container logs (on failure)
+        if: failure()
+        run: docker compose ps -a && docker compose logs --no-color --tail 80
       - name: Upload report and evidence bundle
         if: always()
         uses: actions/upload-artifact@v4
