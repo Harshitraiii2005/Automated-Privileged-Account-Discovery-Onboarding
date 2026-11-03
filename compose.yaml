@@ -17,7 +17,8 @@ services:
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
     environment:
-      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:?run make lab-gen first}
+      # Optional here so `docker compose down` works on a fresh clone; the entrypoint refuses to start without it.
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:-}
     volumes:
       - ldap-config:/etc/ldap/slapd.d
       - ldap-data:/var/lib/ldap
