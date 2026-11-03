@@ -1,0 +1,33 @@
+#!/bin/sh
+# AutoOnboard discovery collector: read-only dump of local account data. The discovery scanner may
+# run exactly this script, with no arguments, via sudo. Password hashes never leave the host: the
+# shadow section only says whether a usable password exists (set | locked | nopassword | empty).
+set -eu
+section() { printf '### %s\n' "$1"; }
+
+section hostname
+hostname
+section os-release
+cat /etc/os-release
+section passwd
+getent passwd
+section group
+getent group
+section shadow
+getent shadow | awk -F: 'BEGIN { OFS = ":" } {
+    h = $2; s = "set"
+    if (h == "") s = "empty"
+    else if (h ~ /^[!*]/) { sub(/^!+/, "", h); s = (h == "" || h ~ /^\*/) ? "nopassword" : "locked" }
+    print $1, s, $3, $4, $5, $6, $7, $8
+}'
+section sudoers
+for f in /etc/sudoers /etc/sudoers.d/*; do
+    case "${f##*/}" in *.* | *~) continue ;; esac # sudo itself skips these names
+    if [ -f "$f" ]; then cat "$f"; fi
+done
+section authorized_keys
+getent passwd | while IFS=: read -r user _ _ _ _ home _; do
+    for k in "$home/.ssh/authorized_keys" "$home/.ssh/authorized_keys2"; do
+        if [ -f "$k" ]; then sed "s|^|$user:|" "$k"; fi
+    done
+done

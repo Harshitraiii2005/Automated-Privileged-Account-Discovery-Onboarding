@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoOnboard PAM Report</title>
+<style>
+  :root { --ink:#1b1f24; --muted:#5b6470; --line:#d9dee4; --bg:#ffffff; --panel:#f5f7f9; --accent:#1f5fa8;
+          --ok:#1e7a46; --warn:#a86400; --bad:#b3261e; --critical:#7a1010; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+  main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 60px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 32px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); break-after: avoid; }
+  h3 { font-size: 13px; margin: 18px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  p.meta { color: var(--muted); margin: 0; }
+  .banner { margin: 14px 0 0; padding: 8px 12px; background: var(--panel); border-left: 4px solid var(--accent); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 18px; }
+  .kpi { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; break-inside: avoid; }
+  .kpi b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .kpi span { color: var(--muted); font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--panel); font-weight: 600; }
+  tr { break-inside: avoid; }
+  td.num, th.num { text-align: right; }
+  code { font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 11px; font-weight: 600; color: #fff; }
+  .low { background: #6b7684; } .medium { background: var(--warn); } .high { background: var(--bad); } .critical { background: var(--critical); }
+  .info { background: #6b7684; } .warning { background: var(--warn); }
+  .pass { color: var(--ok); font-weight: 700; } .fail { color: var(--bad); font-weight: 700; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .small { font-size: 11.5px; color: var(--muted); }
+  pre { background: var(--panel); padding: 8px; overflow-x: auto; font-size: 11px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } main { padding: 16px; } table { display: block; overflow-x: auto; } }
+  @media print { main { max-width: none; padding: 0; } h2 { break-before: auto; } a { color: inherit; text-decoration: none; } }
+</style>
+</head>
+<body>
+<main>
+<h1>Privileged Account Discovery &amp; Onboarding Report</h1>
+<p class="meta">Generated 2026-11-03T14:56:47+00:00 &middot; plan <code>d43c1c575142</code> prepared by pipeline &middot; approved by security-lead at 2026-11-03T14:56:23+00:00</p>
+<p class="banner">Lab environment: every account, person and credential in this report is fictional. Passwords never appear in this report or in the evidence bundle.</p>
+
+<div class="kpis">
+  <div class="kpi"><b>291</b><span>accounts discovered (200 LDAP, 91 Linux)</span></div>
+  <div class="kpi"><b>78</b><span>privileged accounts</span></div>
+  <div class="kpi"><b>58 / 58</b><span>vaulted / planned for onboarding (100%)</span></div>
+  <div class="kpi"><b>40</b><span>privileged accounts vaulted</span></div>
+  <div class="kpi"><b>27</b><span>stale accounts (10 still privileged)</span></div>
+  <div class="kpi"><b>36 + 13</b><span>remediation + review items</span></div>
+  <div class="kpi"><b>5 / 1</b><span>warning / critical alerts</span></div>
+  <div class="kpi"><b>0</b><span>unresolved critical alerts</span></div>
+</div>
+
+<h2>Master Policy compliance</h2>
+<table>
+  <tr><th>Check</th><th>Result</th></tr>
+  <tr><td>File audit device enabled</td><td class="pass">PASS</td></tr><tr><td>Every vaulted account carries an approval bound to the current plan</td><td class="pass">PASS</td></tr><tr><td>No self-approval (approver differs from plan author)</td><td class="pass">PASS</td></tr><tr><td>Every platform rotates within 90 days</td><td class="pass">PASS</td></tr><tr><td>Every vaulted account changed within its platform period</td><td class="pass">PASS</td></tr><tr><td>Every vaulted account verified successfully in the last 24h</td><td class="pass">PASS</td></tr><tr><td>Onboarder and auditor policies grant no credential read</td><td class="pass">PASS</td></tr><tr><td>Every safe has member and manager policies</td><td class="pass">PASS</td></tr>
+</table>
+<p class="small">Master Policy: rotation at most every 90 days; approval required: True; self-approval allowed: False; verify after change: True.</p>
+
+<h2>Discovered vs onboarded</h2>
+<div class="cols">
+<div>
+<h3>By classification</h3>
+<table>
+  <tr><th>Label</th><th class="num">Accounts</th></tr>
+  <tr><td>standard</td><td class="num">127</td></tr><tr><td>service</td><td class="num">90</td></tr><tr><td>human_admin</td><td class="num">32</td></tr><tr><td>stale</td><td class="num">27</td></tr><tr><td>shared</td><td class="num">15</td></tr>
+</table>
+</div>
+<div>
+<h3>By source and team</h3>
+<table>
+  <tr><th>Source</th><th>Team</th><th class="num">Accounts</th></tr>
+  <tr><td>ldap</td><td>dba</td><td class="num">20</td></tr><tr><td>ldap</td><td>engineering</td><td class="num">37</td></tr><tr><td>ldap</td><td>finance</td><td class="num">20</td></tr><tr><td>ldap</td><td>hr</td><td class="num">10</td></tr><tr><td>ldap</td><td>infra</td><td class="num">34</td></tr><tr><td>ldap</td><td>marketing</td><td class="num">13</td></tr><tr><td>ldap</td><td>network</td><td class="num">13</td></tr><tr><td>ldap</td><td>sales</td><td class="num">23</td></tr><tr><td>ldap</td><td>security</td><td class="num">11</td></tr><tr><td>ldap</td><td>support</td><td class="num">19</td></tr><tr><td>linux</td><td>dba</td><td class="num">25</td></tr><tr><td>linux</td><td>engineering</td><td class="num">33</td></tr><tr><td>linux</td><td>finance</td><td class="num">1</td></tr><tr><td>linux</td><td>infra</td><td class="num">32</td></tr>
+</table>
+</div>
+</div>
+
+<h2>Safes and policy coverage</h2>
+<table>
+  <tr><th>Safe</th><th class="num">Accounts</th><th>Platforms</th><th>Members (retrieve)</th><th>Managers (no retrieve)</th><th>Policies</th></tr>
+  
+  <tr><td><code>LDAP-DBA</code></td><td class="num">10</td><td>LDAP-ADM, LDAP-SHARED, LDAP-SVC</td>
+      <td>database team</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>LDAP-ENGINEERING</code></td><td class="num">6</td><td>LDAP-SVC</td>
+      <td>engineering</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>LDAP-FINANCE</code></td><td class="num">4</td><td>LDAP-SHARED, LDAP-SVC</td>
+      <td>finance</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>LDAP-HR</code></td><td class="num">1</td><td>LDAP-SVC</td>
+      <td>hr</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>LDAP-INFRA</code></td><td class="num">15</td><td>LDAP-ADM, LDAP-SHARED, LDAP-SVC</td>
+      <td>it operations</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>LDAP-MARKETING</code></td><td class="num">1</td><td>LDAP-SVC</td>
+      <td>marketing</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>LDAP-NETWORK</code></td><td class="num">6</td><td>LDAP-ADM, LDAP-SHARED, LDAP-SVC</td>
+      <td>network team</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>LDAP-SALES</code></td><td class="num">2</td><td>LDAP-SVC</td>
+      <td>sales</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>LDAP-SECURITY</code></td><td class="num">5</td><td>LDAP-ADM, LDAP-SVC</td>
+      <td>security team</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>LDAP-SUPPORT</code></td><td class="num">3</td><td>LDAP-SHARED, LDAP-SVC</td>
+      <td>support</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>UNIX-DBA</code></td><td class="num">1</td><td>UNIX-ROOT</td>
+      <td>database team</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>UNIX-ENGINEERING</code></td><td class="num">2</td><td>UNIX-SHARED</td>
+      <td>engineering</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+  <tr><td><code>UNIX-INFRA</code></td><td class="num">2</td><td>UNIX-ROOT, UNIX-SHARED</td>
+      <td>it operations</td><td>security team</td>
+      <td class="pass">both present</td></tr>
+  
+</table>
+<h3>Platforms</h3>
+<table>
+  <tr><th>Platform</th><th>Kind</th><th class="num">Rotation (days)</th><th>Description</th></tr>
+  <tr><td><code>LDAP-SVC</code></td><td>ldap</td><td class="num">30</td><td>Directory service account; Vault static role rotates it</td></tr><tr><td><code>LDAP-SHARED</code></td><td>ldap</td><td class="num">7</td><td>Shared directory account; Vault static role rotates it</td></tr><tr><td><code>LDAP-ADM</code></td><td>ldap</td><td class="num">1</td><td>Personal tiered admin account; rotated daily</td></tr><tr><td><code>UNIX-ROOT</code></td><td>unix</td><td class="num">7</td><td>Linux root; CPM changes it via the reconcile account, verifies with su</td></tr><tr><td><code>UNIX-SHARED</code></td><td>unix</td><td class="num">7</td><td>Linux shared login; CPM changes it via the reconcile account, verifies with su</td></tr>
+</table>
+
+<h2>Alerts</h2>
+
+<table>
+  <tr><th>Time</th><th>Severity</th><th>Event</th><th>Account</th><th>Result</th><th>Detail</th></tr>
+  <tr><td>2026-11-03T14:56:32+00:00</td><td><span class="chip warning">warning</span></td><td>verify</td><td><code>LDAP-DBA/sql_agent</code></td><td>failure</td><td>vaulted password rejected (changed out of band?)</td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td><span class="chip warning">warning</span></td><td>reconcile</td><td><code>LDAP-DBA/sql_agent</code></td><td>success</td><td>drift detected and reset by the reconcile account</td></tr><tr><td>2026-11-03T14:56:36+00:00</td><td><span class="chip warning">warning</span></td><td>verify</td><td><code>UNIX-ENGINEERING/app01.ops</code></td><td>failure</td><td>vaulted password rejected (changed out of band?)</td></tr><tr><td>2026-11-03T14:56:36+00:00</td><td><span class="chip warning">warning</span></td><td>reconcile</td><td><code>UNIX-ENGINEERING/app01.ops</code></td><td>success</td><td>drift detected and reset by the reconcile account</td></tr><tr><td>2026-11-03T14:56:37+00:00</td><td><span class="chip warning">warning</span></td><td>verify</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>failure</td><td>vaulted password rejected (changed out of band?)</td></tr><tr><td>2026-11-03T14:56:38+00:00</td><td><span class="chip critical">critical</span></td><td>reconcile</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>failure</td><td>reconcile failed: manual intervention required</td></tr>
+</table>
+<p class="small">0 critical alert(s) have no later successful change/verify for the same account.</p>
+
+
+<h2>Vaulted accounts and rotation state</h2>
+<table>
+  <tr><th>Safe / object</th><th>Platform</th><th>Approved by</th><th>Last change</th><th>Last CPM event</th><th>Overdue</th></tr>
+  
+  <tr><td><code>LDAP-DBA/adm-cpetrov</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:42Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-DBA/adm-qmurphy</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:42Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-DBA/dbadmin</code></td><td>LDAP-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:42Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-DBA/oracle</code></td><td>LDAP-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:42Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-DBA/sql_agent</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:42Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-DBA/svc-dbbackup</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:42Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-DBA/svc-etl</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:42Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-DBA/svc-sqlreport</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:42Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-DBA/vquist-adm</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-DBA/wito-adm</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-ENGINEERING/jenkins2</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-ENGINEERING/svc-artifacts</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-ENGINEERING/svc-deploy</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-ENGINEERING/svc-jenkins</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-ENGINEERING/svc-wiki</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-ENGINEERING/svc_k8s_ingress</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-FINANCE/app-billing</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-FINANCE/reportbot</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-FINANCE/svc-payroll</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-FINANCE/tableau</code></td><td>LDAP-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-HR/svc-hrportal</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/adm-ibecker</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/adm-ljovanovic</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/adm-tlindqvist</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/adm-xortega</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/backupadmin</code></td><td>LDAP-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:43Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/breakglass</code></td><td>LDAP-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/socanalyst</code></td><td>LDAP-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/svc-backup</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/svc-dirsync</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/svc-mailrelay</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/svc-monitoring</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/svc-patching</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/sysadmin</code></td><td>LDAP-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/ujovanovic-adm</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-INFRA/vreyes-adm</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-MARKETING/app-analytics</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-NETWORK/adm-nvasquez</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-NETWORK/asato-adm</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-NETWORK/netadmin</code></td><td>LDAP-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-NETWORK/svc-netconfig</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-NETWORK/svc-radius</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-NETWORK/xbecker-adm</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-SALES/app-quotes</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:44Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-SALES/svc-crm</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-SECURITY/adm-calvarez2</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-SECURITY/adm-npetrov</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-SECURITY/adm-sjensen</code></td><td>LDAP-ADM</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-SECURITY/svc-siem</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-SECURITY/svc-vulnscan</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-SUPPORT/helpdesk</code></td><td>LDAP-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-SUPPORT/scanner01</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>LDAP-SUPPORT/svc-ticketing</code></td><td>LDAP-SVC</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>verify success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>UNIX-DBA/db01.root</code></td><td>UNIX-ROOT</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>change success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>UNIX-ENGINEERING/app01.ops</code></td><td>UNIX-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>change success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>UNIX-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>change success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>UNIX-INFRA/web01.root</code></td><td>UNIX-ROOT</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>change success</td>
+      <td class="pass">no</td></tr>
+  
+  <tr><td><code>UNIX-INFRA/web01.webadmin</code></td><td>UNIX-SHARED</td><td>security-lead</td><td>2026-11-03T14:56:45Z</td>
+      <td>change success</td>
+      <td class="pass">no</td></tr>
+  
+</table>
+
+<h2>Stale accounts</h2>
+<table>
+  <tr><th>Account</th><th>Privileged</th><th>Risk</th><th>Evidence</th><th>Risk factors</th></tr>
+  
+  <tr><td><code>linux:app01:root</code></td><td>yes</td>
+      <td><span class="chip critical">95</span></td><td>model (85%)</td><td class="small">+40 UID 0; +30 may run any command as root; +20 stale but still privileged; +5 privileged password never expires</td></tr>
+  
+  <tr><td><code>linux:db01:zortega</code></td><td>yes</td>
+      <td><span class="chip critical">80</span></td><td>account is disabled/locked</td><td class="small">+30 may run any command as root; +20 stale but still privileged; +10 password unchanged for 456 days; +5 privileged password never expires; +15 local account outlived its disabled directory identity</td></tr>
+  
+  <tr><td><code>ldap:adm-jtanaka</code></td><td>yes</td>
+      <td><span class="chip critical">75</span></td><td>no logon for 378 days</td><td class="small">+35 effective Domain Admin; +20 stale but still privileged; +10 password unchanged for 444 days; +10 owner is stale</td></tr>
+  
+  <tr><td><code>ldap:svc-migration</code></td><td>yes</td>
+      <td><span class="chip high">65</span></td><td>no logon for 945 days</td><td class="small">+20 privileged group or sudo rule; +20 stale but still privileged; +10 password unchanged for 2239 days; +5 privileged password never expires; +10 owner is disabled</td></tr>
+  
+  <tr><td><code>ldap:svc-legacyftp</code></td><td>yes</td>
+      <td><span class="chip high">65</span></td><td>no logon for 559 days</td><td class="small">+20 privileged group or sudo rule; +20 stale but still privileged; +10 password unchanged for 2073 days; +5 privileged password never expires; +10 owner is stale</td></tr>
+  
+  <tr><td><code>ldap:hmensah-adm</code></td><td>yes</td>
+      <td><span class="chip high">65</span></td><td>no logon for 394 days</td><td class="small">+35 effective Domain Admin; +20 stale but still privileged; +10 password unchanged for 472 days</td></tr>
+  
+  <tr><td><code>ldap:jtanaka</code></td><td>yes</td>
+      <td><span class="chip high">65</span></td><td>no logon for 341 days</td><td class="small">+35 effective Domain Admin; +20 stale but still privileged; +10 password unchanged for 396 days</td></tr>
+  
+  <tr><td><code>ldap:zortega-adm</code></td><td>yes</td>
+      <td><span class="chip high">50</span></td><td>no logon for 234 days</td><td class="small">+20 privileged group or sudo rule; +20 stale but still privileged; +10 owner is disabled</td></tr>
+  
+  <tr><td><code>ldap:fjovanovic</code></td><td>yes</td>
+      <td><span class="chip high">50</span></td><td>no logon for 437 days</td><td class="small">+20 privileged group or sudo rule; +20 stale but still privileged; +10 password unchanged for 442 days</td></tr>
+  
+  <tr><td><code>ldap:zortega</code></td><td>yes</td>
+      <td><span class="chip high">40</span></td><td>account is disabled/locked</td><td class="small">+20 privileged group or sudo rule; +20 stale but still privileged</td></tr>
+  
+  <tr><td><code>linux:web01:jtanaka</code></td><td>no</td>
+      <td><span class="chip medium">25</span></td><td>same-named directory account is stale (likely a leaver)</td><td class="small">+10 password unchanged for 691 days; +15 local account outlived its stale directory identity</td></tr>
+  
+  <tr><td><code>linux:app01:ndiaz</code></td><td>no</td>
+      <td><span class="chip medium">25</span></td><td>same-named directory account is disabled (likely a leaver)</td><td class="small">+10 password unchanged for 407 days; +15 local account outlived its disabled directory identity</td></tr>
+  
+  <tr><td><code>ldap:app-intranet</code></td><td>no</td>
+      <td><span class="chip medium">20</span></td><td>no logon for 384 days</td><td class="small">+10 password unchanged for 1216 days; +10 owner is stale</td></tr>
+  
+  <tr><td><code>ldap:svc-oldcrm</code></td><td>no</td>
+      <td><span class="chip medium">20</span></td><td>no logon for 849 days</td><td class="small">+10 password unchanged for 2169 days; +10 owner is disabled</td></tr>
+  
+  <tr><td><code>ldap:jsato</code></td><td>no</td>
+      <td><span class="chip low">10</span></td><td>never logged in (created 494 days ago)</td><td class="small">+10 password unchanged for 494 days</td></tr>
+  
+  <tr><td><code>ldap:bxu2</code></td><td>no</td>
+      <td><span class="chip low">10</span></td><td>never logged in (created 414 days ago)</td><td class="small">+10 password unchanged for 414 days</td></tr>
+  
+  <tr><td><code>ldap:pzhang</code></td><td>no</td>
+      <td><span class="chip low">10</span></td><td>never logged in (created 438 days ago)</td><td class="small">+10 password unchanged for 438 days</td></tr>
+  
+  <tr><td><code>ldap:bxu</code></td><td>no</td>
+      <td><span class="chip low">10</span></td><td>account is disabled/locked</td><td class="small">+10 password unchanged for 675 days</td></tr>
+  
+  <tr><td><code>ldap:vokafor</code></td><td>no</td>
+      <td><span class="chip low">10</span></td><td>no logon for 343 days</td><td class="small">+10 password unchanged for 381 days</td></tr>
+  
+  <tr><td><code>ldap:ndiaz</code></td><td>no</td>
+      <td><span class="chip low">10</span></td><td>account is disabled/locked</td><td class="small">+10 password unchanged for 733 days</td></tr>
+  
+  <tr><td><code>linux:db01:nobody</code></td><td>no</td>
+      <td><span class="chip low">10</span></td><td>model (43%)</td><td class="small">+10 password unchanged for 944 days</td></tr>
+  
+  <tr><td><code>ldap:avarga</code></td><td>no</td>
+      <td><span class="chip low">0</span></td><td>never logged in (created 187 days ago)</td><td class="small"></td></tr>
+  
+  <tr><td><code>ldap:emurphy</code></td><td>no</td>
+      <td><span class="chip low">0</span></td><td>never logged in (created 145 days ago)</td><td class="small"></td></tr>
+  
+  <tr><td><code>ldap:alindqvist</code></td><td>no</td>
+      <td><span class="chip low">0</span></td><td>no logon for 279 days</td><td class="small"></td></tr>
+  
+  <tr><td><code>ldap:upetrov</code></td><td>no</td>
+      <td><span class="chip low">0</span></td><td>account is disabled/locked</td><td class="small"></td></tr>
+  
+  <tr><td><code>linux:web01:systemd-network</code></td><td>no</td>
+      <td><span class="chip low">0</span></td><td>account has expired</td><td class="small"></td></tr>
+  
+  <tr><td><code>linux:web01:contractor1</code></td><td>no</td>
+      <td><span class="chip low">0</span></td><td>account has expired</td><td class="small"></td></tr>
+  
+</table>
+
+<h2>Remediation and review</h2>
+<table>
+  <tr><th>Action</th><th>Account</th><th>Label</th><th>Risk</th><th>Recommendation</th></tr>
+  
+  <tr><td>remediate</td><td><code>linux:app01:root</code></td><td>stale</td><td><span class="chip critical">95</span></td><td>stale (model (85%)): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>linux:db01:zortega</code></td><td>stale</td><td><span class="chip critical">80</span></td><td>stale (account is disabled/locked): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:adm-jtanaka</code></td><td>stale</td><td><span class="chip critical">75</span></td><td>stale (no logon for 378 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>linux:web01:toor</code></td><td>shared</td><td><span class="chip critical">75</span></td><td>second UID 0 account: remove it (root is the only sanctioned UID 0)</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:hmensah-adm</code></td><td>stale</td><td><span class="chip high">65</span></td><td>stale (no logon for 394 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:jtanaka</code></td><td>stale</td><td><span class="chip high">65</span></td><td>stale (no logon for 341 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:svc-legacyftp</code></td><td>stale</td><td><span class="chip high">65</span></td><td>stale (no logon for 559 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:svc-migration</code></td><td>stale</td><td><span class="chip high">65</span></td><td>stale (no logon for 945 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:fjovanovic</code></td><td>stale</td><td><span class="chip high">50</span></td><td>stale (no logon for 437 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:zortega-adm</code></td><td>stale</td><td><span class="chip high">50</span></td><td>stale (no logon for 234 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:zortega</code></td><td>stale</td><td><span class="chip high">40</span></td><td>stale (account is disabled/locked): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:cferreira</code></td><td>human_admin</td><td><span class="chip medium">35</span></td><td>privileges on a mailbox-enabled daily account: move them to a separate admin account</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:jquist</code></td><td>human_admin</td><td><span class="chip medium">35</span></td><td>privileges on a mailbox-enabled daily account: move them to a separate admin account</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:xalvarez</code></td><td>human_admin</td><td><span class="chip medium">35</span></td><td>privileges on a mailbox-enabled daily account: move them to a separate admin account</td></tr>
+  
+  <tr><td>remediate</td><td><code>linux:app01:ndiaz</code></td><td>stale</td><td><span class="chip medium">25</span></td><td>stale (same-named directory account is disabled (likely a leaver)): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>linux:web01:jtanaka</code></td><td>stale</td><td><span class="chip medium">25</span></td><td>stale (same-named directory account is stale (likely a leaver)): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:app-intranet</code></td><td>stale</td><td><span class="chip medium">20</span></td><td>stale (no logon for 384 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:gmensah</code></td><td>human_admin</td><td><span class="chip medium">20</span></td><td>privileges on a mailbox-enabled daily account: move them to a separate admin account</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:ipetrov</code></td><td>human_admin</td><td><span class="chip medium">20</span></td><td>privileges on a mailbox-enabled daily account: move them to a separate admin account</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:mdubois</code></td><td>human_admin</td><td><span class="chip medium">20</span></td><td>privileges on a mailbox-enabled daily account: move them to a separate admin account</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:skowalski</code></td><td>human_admin</td><td><span class="chip medium">20</span></td><td>privileges on a mailbox-enabled daily account: move them to a separate admin account</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:svc-oldcrm</code></td><td>stale</td><td><span class="chip medium">20</span></td><td>stale (no logon for 849 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:tgarcia</code></td><td>human_admin</td><td><span class="chip medium">20</span></td><td>privileges on a mailbox-enabled daily account: move them to a separate admin account</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:bxu</code></td><td>stale</td><td><span class="chip low">10</span></td><td>stale (account is disabled/locked): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:bxu2</code></td><td>stale</td><td><span class="chip low">10</span></td><td>stale (never logged in (created 414 days ago)): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:jsato</code></td><td>stale</td><td><span class="chip low">10</span></td><td>stale (never logged in (created 494 days ago)): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:ndiaz</code></td><td>stale</td><td><span class="chip low">10</span></td><td>stale (account is disabled/locked): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:pzhang</code></td><td>stale</td><td><span class="chip low">10</span></td><td>stale (never logged in (created 438 days ago)): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:vokafor</code></td><td>stale</td><td><span class="chip low">10</span></td><td>stale (no logon for 343 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>linux:db01:nobody</code></td><td>stale</td><td><span class="chip low">10</span></td><td>stale (model (43%)): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:alindqvist</code></td><td>stale</td><td><span class="chip low">0</span></td><td>stale (no logon for 279 days): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:avarga</code></td><td>stale</td><td><span class="chip low">0</span></td><td>stale (never logged in (created 187 days ago)): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:emurphy</code></td><td>stale</td><td><span class="chip low">0</span></td><td>stale (never logged in (created 145 days ago)): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>ldap:upetrov</code></td><td>stale</td><td><span class="chip low">0</span></td><td>stale (account is disabled/locked): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>linux:web01:contractor1</code></td><td>stale</td><td><span class="chip low">0</span></td><td>stale (account has expired): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>remediate</td><td><code>linux:web01:systemd-network</code></td><td>stale</td><td><span class="chip low">0</span></td><td>stale (account has expired): disable or delete it instead of vaulting it</td></tr>
+  
+  <tr><td>review</td><td><code>linux:app01:jenkins</code></td><td>service</td><td><span class="chip high">55</span></td><td>privileged key-based service account: needs SSH key management (out of scope)</td></tr>
+  
+  <tr><td>review</td><td><code>linux:db01:oracle</code></td><td>service</td><td><span class="chip high">55</span></td><td>privileged key-based service account: needs SSH key management (out of scope)</td></tr>
+  
+  <tr><td>review</td><td><code>linux:web01:deploy</code></td><td>service</td><td><span class="chip high">55</span></td><td>privileged key-based service account: needs SSH key management (out of scope)</td></tr>
+  
+  <tr><td>review</td><td><code>linux:app01:backupsvc</code></td><td>service</td><td><span class="chip high">45</span></td><td>privileged key-based service account: needs SSH key management (out of scope)</td></tr>
+  
+  <tr><td>review</td><td><code>linux:app01:gkaur</code></td><td>human_admin</td><td><span class="chip high">45</span></td><td>personal local admin account: prefer a directory identity with brokered access</td></tr>
+  
+  <tr><td>review</td><td><code>linux:app01:jquist</code></td><td>human_admin</td><td><span class="chip high">45</span></td><td>personal local admin account: prefer a directory identity with brokered access</td></tr>
+  
+  <tr><td>review</td><td><code>linux:db01:backupsvc</code></td><td>service</td><td><span class="chip high">45</span></td><td>privileged key-based service account: needs SSH key management (out of scope)</td></tr>
+  
+  <tr><td>review</td><td><code>linux:web01:cferreira</code></td><td>human_admin</td><td><span class="chip high">45</span></td><td>personal local admin account: prefer a directory identity with brokered access</td></tr>
+  
+  <tr><td>review</td><td><code>linux:web01:ujovanovic</code></td><td>human_admin</td><td><span class="chip high">45</span></td><td>personal local admin account: prefer a directory identity with brokered access</td></tr>
+  
+  <tr><td>review</td><td><code>linux:web01:xortega</code></td><td>human_admin</td><td><span class="chip high">45</span></td><td>personal local admin account: prefer a directory identity with brokered access</td></tr>
+  
+  <tr><td>review</td><td><code>linux:db01:cpetrov</code></td><td>human_admin</td><td><span class="chip medium">35</span></td><td>personal local admin account: prefer a directory identity with brokered access</td></tr>
+  
+  <tr><td>review</td><td><code>linux:db01:qmurphy</code></td><td>human_admin</td><td><span class="chip medium">35</span></td><td>personal local admin account: prefer a directory identity with brokered access</td></tr>
+  
+  <tr><td>review</td><td><code>linux:db01:jeriksen</code></td><td>human_admin</td><td><span class="chip medium">25</span></td><td>personal local admin account: prefer a directory identity with brokered access</td></tr>
+  
+</table>
+
+<h2>Credential access (from the Vault audit log)</h2>
+
+<table>
+  <tr><th>Identity</th><th class="num">Credential reads</th></tr>
+  <tr><td>approle/cpm</td><td class="num">318</td></tr><tr><td>ldap-seriksen</td><td class="num">2</td></tr><tr><td>root</td><td class="num">1</td></tr>
+</table>
+<h3>Latest 40 reads</h3>
+<table>
+  <tr><th>Time (UTC)</th><th>Identity</th><th>Policies</th><th>Path</th><th>Result</th></tr>
+  <tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-INFRA/breakglass</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-INFRA/socanalyst</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-INFRA/svc-backup</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-INFRA/svc-dirsync</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-INFRA/svc-mailrelay</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-INFRA/svc-monitoring</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-INFRA/svc-patching</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-INFRA/sysadmin</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-INFRA/ujovanovic-adm</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-INFRA/vreyes-adm</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-MARKETING/app-analytics</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-NETWORK/adm-nvasquez</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-NETWORK/asato-adm</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-NETWORK/netadmin</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-NETWORK/svc-netconfig</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-NETWORK/svc-radius</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-NETWORK/xbecker-adm</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:44</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-SALES/app-quotes</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-SALES/svc-crm</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-SECURITY/adm-calvarez2</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-SECURITY/adm-npetrov</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-SECURITY/adm-sjensen</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-SECURITY/svc-siem</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-SECURITY/svc-vulnscan</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-SUPPORT/helpdesk</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-SUPPORT/scanner01</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>ldap/static-cred/LDAP-SUPPORT/svc-ticketing</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/PAM-INTERNAL/unix-reconcile</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/UNIX-DBA/db01.root</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/UNIX-DBA/db01.root</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/UNIX-ENGINEERING/app01.ops</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/UNIX-ENGINEERING/app01.ops</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/UNIX-ENGINEERING/app01.ubuntu</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/UNIX-ENGINEERING/app01.ubuntu</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/UNIX-INFRA/web01.root</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/UNIX-INFRA/web01.root</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/UNIX-INFRA/web01.webadmin</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:45</td><td>approle/cpm</td><td class="small">cpm,default</td><td><code>safes/data/UNIX-INFRA/web01.webadmin</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:46</td><td>ldap-seriksen</td><td class="small">default,safe-ldap-dba-users,safe-unix-dba-users</td><td><code>ldap/static-cred/LDAP-DBA/adm-cpetrov</code></td><td class="pass">ok</td></tr><tr><td>2026-11-03T14:56:46</td><td>ldap-seriksen</td><td class="small">default,safe-ldap-dba-users,safe-unix-dba-users</td><td><code>ldap/static-cred/LDAP-ENGINEERING/jenkins2</code></td><td class="fail">denied</td></tr>
+</table>
+
+
+<h2>Classification accuracy (against seeded ground truth)</h2>
+
+<p>hybrid (stale rules + gradient boosting); 239 labeled accounts, 5-fold stratified cross-validation, out-of-fold predictions. Synthetic lab data: these numbers describe separation of the generator's personas, not real-world accuracy.</p>
+<table>
+  <tr><th>Classifier</th><th class="num">Accuracy</th><th class="num">Macro F1</th></tr>
+  <tr><td>rules</td><td class="num">95.8%</td><td class="num">0.911</td></tr><tr><td>ml</td><td class="num">97.5%</td><td class="num">0.952</td></tr><tr><td>hybrid</td><td class="num">97.9%</td><td class="num">0.958</td></tr>
+</table>
+<div class="cols">
+<div>
+<h3>Per class (hybrid)</h3>
+<table>
+  <tr><th>Label</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th><th class="num">Support</th></tr>
+  
+  <tr><td>human_admin</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">32</td></tr>
+  
+  <tr><td>service</td><td class="num">0.976</td><td class="num">0.953</td><td class="num">0.965</td><td class="num">43</td></tr>
+  
+  <tr><td>shared</td><td class="num">0.867</td><td class="num">0.867</td><td class="num">0.867</td><td class="num">15</td></tr>
+  
+  <tr><td>stale</td><td class="num">0.960</td><td class="num">0.960</td><td class="num">0.960</td><td class="num">25</td></tr>
+  
+  <tr><td>standard</td><td class="num">0.992</td><td class="num">1.000</td><td class="num">0.996</td><td class="num">124</td></tr>
+  
+</table>
+</div>
+<div>
+<h3>Confusion matrix (rows = truth)</h3>
+<table>
+  <tr><th></th><th class="num">human_admin</th><th class="num">service</th><th class="num">shared</th><th class="num">stale</th><th class="num">standard</th></tr>
+  <tr><th>human_admin</th><td class="num">32</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr><tr><th>service</th><td class="num">0</td><td class="num">41</td><td class="num">1</td><td class="num">0</td><td class="num">1</td></tr><tr><th>shared</th><td class="num">0</td><td class="num">1</td><td class="num">13</td><td class="num">1</td><td class="num">0</td></tr><tr><th>stale</th><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">24</td><td class="num">0</td></tr><tr><th>standard</th><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">124</td></tr>
+</table>
+</div>
+</div>
+<h3>Misclassified</h3>
+<table>
+  <tr><th>Account</th><th>Truth</th><th>Predicted</th></tr>
+  <tr><td><code>ldap:tableau</code></td><td>service</td><td>shared</td></tr><tr><td><code>ldap:svc-print</code></td><td>service</td><td>standard</td></tr><tr><td><code>linux:db01:oracle</code></td><td>shared</td><td>service</td></tr><tr><td><code>linux:app01:root</code></td><td>shared</td><td>stale</td></tr><tr><td><code>linux:app01:ubuntu</code></td><td>stale</td><td>shared</td></tr>
+</table>
+
+
+<h2>CPM activity log</h2>
+<table>
+  <tr><th>Time</th><th>Event</th><th>Account</th><th>Result</th><th>Detail</th></tr>
+  <tr><td>2026-11-03T14:56:46+00:00</td><td>access-check</td><td><code>LDAP-ENGINEERING/jenkins2</code></td><td>denied</td><td class="small">seriksen (Database Team) reading LDAP-ENGINEERING/jenkins2: denied</td></tr><tr><td>2026-11-03T14:56:46+00:00</td><td>access-check</td><td><code>LDAP-DBA/adm-cpetrov</code></td><td>allowed</td><td class="small">seriksen (Database Team) reading LDAP-DBA/adm-cpetrov: allowed</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>UNIX-INFRA/web01.webadmin</code></td><td>success</td><td class="small">changed and verified</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>UNIX-INFRA/web01.root</code></td><td>success</td><td class="small">changed and verified</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>success</td><td class="small">changed and verified</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>UNIX-ENGINEERING/app01.ops</code></td><td>success</td><td class="small">changed and verified</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>UNIX-DBA/db01.root</code></td><td>success</td><td class="small">changed and verified</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/svc-ticketing</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>LDAP-SUPPORT/svc-ticketing</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/scanner01</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>LDAP-SUPPORT/scanner01</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/helpdesk</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>LDAP-SUPPORT/helpdesk</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>verify</td><td><code>LDAP-SECURITY/svc-vulnscan</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>LDAP-SECURITY/svc-vulnscan</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>verify</td><td><code>LDAP-SECURITY/svc-siem</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>LDAP-SECURITY/svc-siem</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-sjensen</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>LDAP-SECURITY/adm-sjensen</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-npetrov</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>LDAP-SECURITY/adm-npetrov</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-calvarez2</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>LDAP-SECURITY/adm-calvarez2</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>verify</td><td><code>LDAP-SALES/svc-crm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:45+00:00</td><td>change</td><td><code>LDAP-SALES/svc-crm</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-SALES/app-quotes</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-SALES/app-quotes</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-NETWORK/xbecker-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-NETWORK/xbecker-adm</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-NETWORK/svc-radius</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-NETWORK/svc-radius</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-NETWORK/svc-netconfig</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-NETWORK/svc-netconfig</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-NETWORK/netadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-NETWORK/netadmin</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-NETWORK/asato-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-NETWORK/asato-adm</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-NETWORK/adm-nvasquez</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-NETWORK/adm-nvasquez</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-MARKETING/app-analytics</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-MARKETING/app-analytics</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-INFRA/vreyes-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-INFRA/vreyes-adm</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-INFRA/ujovanovic-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-INFRA/ujovanovic-adm</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-INFRA/sysadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-INFRA/sysadmin</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-patching</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-INFRA/svc-patching</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-monitoring</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-INFRA/svc-monitoring</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-mailrelay</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-INFRA/svc-mailrelay</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-dirsync</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-INFRA/svc-dirsync</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-backup</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-INFRA/svc-backup</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-INFRA/socanalyst</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-INFRA/socanalyst</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>verify</td><td><code>LDAP-INFRA/breakglass</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:44+00:00</td><td>change</td><td><code>LDAP-INFRA/breakglass</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-INFRA/backupadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-INFRA/backupadmin</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-xortega</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-INFRA/adm-xortega</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-tlindqvist</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-INFRA/adm-tlindqvist</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-ljovanovic</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-INFRA/adm-ljovanovic</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-ibecker</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-INFRA/adm-ibecker</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-HR/svc-hrportal</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-HR/svc-hrportal</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-FINANCE/tableau</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-FINANCE/tableau</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-FINANCE/svc-payroll</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-FINANCE/svc-payroll</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-FINANCE/reportbot</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-FINANCE/reportbot</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-FINANCE/app-billing</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-FINANCE/app-billing</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc_k8s_ingress</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/svc_k8s_ingress</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-wiki</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/svc-wiki</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-jenkins</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/svc-jenkins</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-deploy</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/svc-deploy</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-artifacts</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/svc-artifacts</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/jenkins2</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/jenkins2</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-DBA/wito-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-DBA/wito-adm</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>verify</td><td><code>LDAP-DBA/vquist-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:43+00:00</td><td>change</td><td><code>LDAP-DBA/vquist-adm</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-sqlreport</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>change</td><td><code>LDAP-DBA/svc-sqlreport</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-etl</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>change</td><td><code>LDAP-DBA/svc-etl</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-dbbackup</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>change</td><td><code>LDAP-DBA/svc-dbbackup</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>verify</td><td><code>LDAP-DBA/sql_agent</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>change</td><td><code>LDAP-DBA/sql_agent</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>verify</td><td><code>LDAP-DBA/oracle</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>change</td><td><code>LDAP-DBA/oracle</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>verify</td><td><code>LDAP-DBA/dbadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>change</td><td><code>LDAP-DBA/dbadmin</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>verify</td><td><code>LDAP-DBA/adm-qmurphy</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>change</td><td><code>LDAP-DBA/adm-qmurphy</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>verify</td><td><code>LDAP-DBA/adm-cpetrov</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:42+00:00</td><td>change</td><td><code>LDAP-DBA/adm-cpetrov</code></td><td>success</td><td class="small">rotated by Vault (rotate-role)</td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>UNIX-INFRA/web01.webadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>UNIX-INFRA/web01.root</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>success</td><td class="small">recovered</td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>UNIX-ENGINEERING/app01.ops</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>UNIX-DBA/db01.root</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/svc-ticketing</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/scanner01</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/helpdesk</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-SECURITY/svc-vulnscan</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-SECURITY/svc-siem</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-sjensen</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-npetrov</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-calvarez2</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-SALES/svc-crm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-SALES/app-quotes</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-NETWORK/xbecker-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-NETWORK/svc-radius</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-NETWORK/svc-netconfig</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-NETWORK/netadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-NETWORK/asato-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-NETWORK/adm-nvasquez</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-MARKETING/app-analytics</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-INFRA/vreyes-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-INFRA/ujovanovic-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-INFRA/sysadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-patching</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-monitoring</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:41+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-mailrelay</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-dirsync</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-backup</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-INFRA/socanalyst</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-INFRA/breakglass</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-INFRA/backupadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-xortega</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-tlindqvist</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-ljovanovic</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-ibecker</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-HR/svc-hrportal</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-FINANCE/tableau</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-FINANCE/svc-payroll</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-FINANCE/reportbot</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-FINANCE/app-billing</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc_k8s_ingress</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-wiki</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-jenkins</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-deploy</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-artifacts</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/jenkins2</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-DBA/wito-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-DBA/vquist-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-sqlreport</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-etl</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-dbbackup</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-DBA/sql_agent</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-DBA/oracle</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-DBA/dbadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-DBA/adm-qmurphy</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:40+00:00</td><td>verify</td><td><code>LDAP-DBA/adm-cpetrov</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:39+00:00</td><td>simulate</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>restored</td><td class="small">lab scenario: expiry removed</td></tr><tr><td>2026-11-03T14:56:38+00:00</td><td>verify</td><td><code>UNIX-INFRA/web01.webadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:38+00:00</td><td>verify</td><td><code>UNIX-INFRA/web01.root</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:38+00:00</td><td>reconcile</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>failure</td><td class="small">reconcile failed: manual intervention required</td></tr><tr><td>2026-11-03T14:56:37+00:00</td><td>verify</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>failure</td><td class="small">vaulted password rejected (changed out of band?)</td></tr><tr><td>2026-11-03T14:56:36+00:00</td><td>reconcile</td><td><code>UNIX-ENGINEERING/app01.ops</code></td><td>success</td><td class="small">drift detected and reset by the reconcile account</td></tr><tr><td>2026-11-03T14:56:36+00:00</td><td>verify</td><td><code>UNIX-ENGINEERING/app01.ops</code></td><td>failure</td><td class="small">vaulted password rejected (changed out of band?)</td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>UNIX-DBA/db01.root</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/svc-ticketing</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/scanner01</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/helpdesk</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-SECURITY/svc-vulnscan</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-SECURITY/svc-siem</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-sjensen</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-npetrov</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-calvarez2</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-SALES/svc-crm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-SALES/app-quotes</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-NETWORK/xbecker-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-NETWORK/svc-radius</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-NETWORK/svc-netconfig</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-NETWORK/netadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-NETWORK/asato-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-NETWORK/adm-nvasquez</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-MARKETING/app-analytics</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/vreyes-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/ujovanovic-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/sysadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-patching</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-monitoring</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-mailrelay</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-dirsync</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-backup</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/socanalyst</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/breakglass</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/backupadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-xortega</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-tlindqvist</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-ljovanovic</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-ibecker</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-HR/svc-hrportal</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-FINANCE/tableau</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:33+00:00</td><td>verify</td><td><code>LDAP-FINANCE/svc-payroll</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-FINANCE/reportbot</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-FINANCE/app-billing</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc_k8s_ingress</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-wiki</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-jenkins</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-deploy</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-artifacts</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/jenkins2</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-DBA/wito-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-DBA/vquist-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-sqlreport</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-etl</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-dbbackup</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>reconcile</td><td><code>LDAP-DBA/sql_agent</code></td><td>success</td><td class="small">drift detected and reset by the reconcile account</td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-DBA/sql_agent</code></td><td>failure</td><td class="small">vaulted password rejected (changed out of band?)</td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-DBA/oracle</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-DBA/dbadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-DBA/adm-qmurphy</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:32+00:00</td><td>verify</td><td><code>LDAP-DBA/adm-cpetrov</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:31+00:00</td><td>simulate</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>linux_expired</td><td class="small">lab scenario: account expired</td></tr><tr><td>2026-11-03T14:56:31+00:00</td><td>simulate</td><td><code>UNIX-ENGINEERING/app01.ops</code></td><td>linux_drift</td><td class="small">lab scenario: out-of-band change</td></tr><tr><td>2026-11-03T14:56:31+00:00</td><td>simulate</td><td><code>LDAP-DBA/sql_agent</code></td><td>ldap_drift</td><td class="small">lab scenario: out-of-band change</td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>UNIX-INFRA/web01.webadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>UNIX-INFRA/web01.root</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>UNIX-ENGINEERING/app01.ops</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>UNIX-DBA/db01.root</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/svc-ticketing</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/scanner01</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-SUPPORT/helpdesk</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-SECURITY/svc-vulnscan</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-SECURITY/svc-siem</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-sjensen</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-npetrov</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-SECURITY/adm-calvarez2</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-SALES/svc-crm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-SALES/app-quotes</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-NETWORK/xbecker-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-NETWORK/svc-radius</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-NETWORK/svc-netconfig</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-NETWORK/netadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-NETWORK/asato-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-NETWORK/adm-nvasquez</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-MARKETING/app-analytics</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-INFRA/vreyes-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-INFRA/ujovanovic-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-INFRA/sysadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-patching</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:30+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-monitoring</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-mailrelay</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-dirsync</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-INFRA/svc-backup</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-INFRA/socanalyst</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-INFRA/breakglass</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-INFRA/backupadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-xortega</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-tlindqvist</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-ljovanovic</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-INFRA/adm-ibecker</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-HR/svc-hrportal</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-FINANCE/tableau</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-FINANCE/svc-payroll</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-FINANCE/reportbot</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-FINANCE/app-billing</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc_k8s_ingress</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-wiki</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-jenkins</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-deploy</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/svc-artifacts</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-ENGINEERING/jenkins2</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-DBA/wito-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-DBA/vquist-adm</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-sqlreport</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-etl</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-DBA/svc-dbbackup</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-DBA/sql_agent</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-DBA/oracle</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-DBA/dbadmin</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-DBA/adm-qmurphy</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:29+00:00</td><td>verify</td><td><code>LDAP-DBA/adm-cpetrov</code></td><td>success</td><td class="small"></td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-ENGINEERING/svc_k8s_ingress</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/svc_k8s_ingress</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-SUPPORT/svc-ticketing</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-SUPPORT/svc-ticketing</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-SECURITY/svc-siem</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-SECURITY/svc-siem</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-INFRA/svc-mailrelay</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-INFRA/svc-mailrelay</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-HR/svc-hrportal</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-HR/svc-hrportal</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-FINANCE/app-billing</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-FINANCE/app-billing</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-FINANCE/tableau</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-FINANCE/tableau</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-ENGINEERING/svc-wiki</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/svc-wiki</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-NETWORK/svc-radius</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-NETWORK/svc-radius</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-FINANCE/svc-payroll</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-FINANCE/svc-payroll</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>onboard</td><td><code>LDAP-INFRA/svc-monitoring</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:28+00:00</td><td>change</td><td><code>LDAP-INFRA/svc-monitoring</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-SALES/svc-crm</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-SALES/svc-crm</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-ENGINEERING/svc-artifacts</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/svc-artifacts</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-SUPPORT/scanner01</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-SUPPORT/scanner01</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-FINANCE/reportbot</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-FINANCE/reportbot</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-ENGINEERING/jenkins2</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/jenkins2</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-SALES/app-quotes</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-SALES/app-quotes</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-MARKETING/app-analytics</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-MARKETING/app-analytics</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-NETWORK/xbecker-adm</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-NETWORK/xbecker-adm</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-DBA/wito-adm</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-DBA/wito-adm</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-DBA/vquist-adm</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-DBA/vquist-adm</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-DBA/svc-sqlreport</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-DBA/svc-sqlreport</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-DBA/svc-dbbackup</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-DBA/svc-dbbackup</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-NETWORK/asato-adm</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-NETWORK/asato-adm</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-DBA/adm-qmurphy</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-DBA/adm-qmurphy</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-NETWORK/adm-nvasquez</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-NETWORK/adm-nvasquez</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-DBA/adm-cpetrov</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-DBA/adm-cpetrov</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-DBA/sql_agent</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-DBA/sql_agent</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-DBA/dbadmin</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-DBA/dbadmin</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>onboard</td><td><code>LDAP-INFRA/backupadmin</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:27+00:00</td><td>change</td><td><code>LDAP-INFRA/backupadmin</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-INFRA/vreyes-adm</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-INFRA/vreyes-adm</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-INFRA/ujovanovic-adm</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-INFRA/ujovanovic-adm</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-NETWORK/svc-netconfig</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-NETWORK/svc-netconfig</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-ENGINEERING/svc-jenkins</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/svc-jenkins</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-DBA/svc-etl</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-DBA/svc-etl</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-ENGINEERING/svc-deploy</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-ENGINEERING/svc-deploy</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-INFRA/svc-backup</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-INFRA/svc-backup</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-INFRA/adm-xortega</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-INFRA/adm-xortega</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-INFRA/adm-tlindqvist</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-INFRA/adm-tlindqvist</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-SECURITY/adm-sjensen</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-SECURITY/adm-sjensen</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-SECURITY/adm-npetrov</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-SECURITY/adm-npetrov</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-INFRA/adm-ljovanovic</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-INFRA/adm-ljovanovic</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-INFRA/adm-ibecker</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-INFRA/adm-ibecker</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-SECURITY/adm-calvarez2</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-SECURITY/adm-calvarez2</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-SECURITY/svc-vulnscan</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-SECURITY/svc-vulnscan</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>UNIX-ENGINEERING/app01.ubuntu</code></td><td>success</td><td class="small">onboarding: changed and verified</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-INFRA/socanalyst</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-INFRA/socanalyst</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>onboard</td><td><code>LDAP-DBA/oracle</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:26+00:00</td><td>change</td><td><code>LDAP-DBA/oracle</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:25+00:00</td><td>onboard</td><td><code>LDAP-NETWORK/netadmin</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:25+00:00</td><td>change</td><td><code>LDAP-NETWORK/netadmin</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:25+00:00</td><td>onboard</td><td><code>LDAP-SUPPORT/helpdesk</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:25+00:00</td><td>change</td><td><code>LDAP-SUPPORT/helpdesk</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:25+00:00</td><td>onboard</td><td><code>LDAP-INFRA/breakglass</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:25+00:00</td><td>change</td><td><code>LDAP-INFRA/breakglass</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:25+00:00</td><td>onboard</td><td><code>LDAP-INFRA/sysadmin</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:25+00:00</td><td>change</td><td><code>LDAP-INFRA/sysadmin</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr><tr><td>2026-11-03T14:56:25+00:00</td><td>onboard</td><td><code>LDAP-INFRA/svc-patching</code></td><td>success</td><td class="small">approved by security-lead</td></tr><tr><td>2026-11-03T14:56:25+00:00</td><td>change</td><td><code>LDAP-INFRA/svc-patching</code></td><td>success</td><td class="small">onboarding: Vault changed the password on import</td></tr>
+</table>
+
+<h2>Vault configuration</h2>
+<p>Audit devices: <code>file/</code> &rarr; /vault/logs/audit.log <br>
+Auth methods: approle/, ldap/, token/</p>
+<h3>Password policy autoonboard-ldap</h3><pre>length = 32
+rule &#34;charset&#34; {
+  charset = &#34;abcdefghijklmnopqrstuvwxyz&#34;
+  min-chars = 2
+}
+rule &#34;charset&#34; {
+  charset = &#34;ABCDEFGHIJKLMNOPQRSTUVWXYZ&#34;
+  min-chars = 2
+}
+rule &#34;charset&#34; {
+  charset = &#34;0123456789&#34;
+  min-chars = 2
+}
+rule &#34;charset&#34; {
+  charset = &#34;!@#%^*-_=+&#34;
+  min-chars = 2
+}
+</pre><h3>Password policy autoonboard-unix</h3><pre>length = 24
+rule &#34;charset&#34; {
+  charset = &#34;abcdefghijklmnopqrstuvwxyz&#34;
+  min-chars = 2
+}
+rule &#34;charset&#34; {
+  charset = &#34;ABCDEFGHIJKLMNOPQRSTUVWXYZ&#34;
+  min-chars = 2
+}
+rule &#34;charset&#34; {
+  charset = &#34;0123456789&#34;
+  min-chars = 2
+}
+rule &#34;charset&#34; {
+  charset = &#34;!@#%^*-_=+&#34;
+  min-chars = 2
+}
+</pre>
+
+<h2>Control mapping (indicative)</h2>
+<table>
+  <tr><th>Control</th><th>Topic</th><th>Evidence in this pipeline</th></tr>
+  <tr><td>NIST 800-53 AC-2</td><td>Account management</td><td>Unified inventory of directory and local accounts; owners and teams</td></tr><tr><td>NIST 800-53 AC-2(3)</td><td>Disable accounts</td><td>Stale accounts detected with evidence; remediation list</td></tr><tr><td>NIST 800-53 AC-6</td><td>Least privilege</td><td>Per-safe policies; members vs managers; pipeline split into 3 AppRoles</td></tr><tr><td>NIST 800-53 AC-6(5)</td><td>Privileged accounts</td><td>Privileged accounts vaulted with approval records</td></tr><tr><td>NIST 800-53 IA-5(1)</td><td>Password-based authentication</td><td>Vault password policies, scheduled rotation, verification</td></tr><tr><td>NIST 800-53 AU-2 / AU-12</td><td>Event logging</td><td>Vault file audit device + CPM activity log</td></tr><tr><td>NIST 800-53 AU-6</td><td>Audit review</td><td>Credential-access table derived from the Vault audit log</td></tr>
+</table>
+</main>
+</body>
+</html>

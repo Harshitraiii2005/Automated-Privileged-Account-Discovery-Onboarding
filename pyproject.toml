@@ -1,0 +1,54 @@
+[project]
+name = "autoonboard"
+version = "0.1.0"
+description = "Automated privileged-account discovery, classification and vault onboarding (CyberArk-style workflow on open tooling)"
+requires-python = ">=3.12"
+dependencies = [
+    "cryptography>=44",
+    "fastapi>=0.162.0",
+    "hvac>=2.3",
+    "jinja2>=3.1.6",
+    "ldap3>=2.9.1",
+    "paramiko>=3.5",
+    "rich>=15.0.0",
+    "scikit-learn>=1.9.1",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+autoonboard = "autoonboard.cli:main"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=2.4.1",
+    "pytest>=8",
+    "ruff>=0.17.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning:ldap3.*",  # pyasn1 API rename inside ldap3, not ours
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",  # TestClient still works with httpx
+]
+
+[tool.ruff]
+line-length = 160
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE"]
+# S101 asserts; S311 seeded RNG only builds fictional data; S603/S607 subprocess argv is fixed;
+# S105/S106 match names like password_status or token_ttl, not secrets (CI runs gitleaks for real secrets).
+ignore = ["S101", "S105", "S106", "S311", "S603", "S607"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true

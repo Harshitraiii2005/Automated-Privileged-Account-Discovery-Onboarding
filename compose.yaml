@@ -1,0 +1,93 @@
+# AutoOnboard lab: directory + vault + three Linux hosts. Every port is published on loopback only.
+# Generated material comes from `make lab-gen` (lab/.generated, git-ignored); secrets from .env.
+name: autoonboard
+
+x-host: &host
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "test", "-f", "/run/provisioned"]
+    interval: 2s
+    timeout: 2s
+    retries: 60
+
+services:
+  ldap:
+    build: lab/ldap
+    hostname: ldap
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:?run make lab-gen first}
+    volumes:
+      - ldap-config:/etc/ldap/slapd.d
+      - ldap-data:/var/lib/ldap
+      - ./lab/.generated/ldap/seed.ldif:/seed/seed.ldif:ro
+      - ./lab/.generated/certs/ca.crt:/seed/ca.crt:ro
+      - ./lab/.generated/certs/ldap.crt:/seed/ldap.crt:ro
+      - ./lab/.generated/certs/ldap.key:/seed/ldap.key:ro
+    ports: ["127.0.0.1:1636:636"]
+    healthcheck:
+      test: ["CMD", "ldapsearch", "-Q", "-LLL", "-Y", "EXTERNAL", "-H", "ldapi:///", "-b", "", "-s", "base", "dn"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  vault:
+    image: hashicorp/vault:2.1.2
+    hostname: vault
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      ldap: { condition: service_healthy }
+    # Copy the TLS key in with vault-only ownership, then hand over to the stock entrypoint.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        install -d -o vault -g vault -m 700 /vault/tls &&
+        install -o vault -g vault -m 600 /seed/vault.key /vault/tls/ &&
+        install -o vault -g vault -m 644 /seed/vault.crt /seed/ca.crt /vault/tls/ &&
+        exec docker-entrypoint.sh server
+    environment:
+      SKIP_SETCAP: "true" # mlock is disabled in config.hcl, so IPC_LOCK is not needed
+      VAULT_ADDR: https://127.0.0.1:8200
+      VAULT_CACERT: /vault/tls/ca.crt
+    volumes:
+      - ./lab/vault/config.hcl:/vault/config/config.hcl:ro
+      - vault-data:/vault/file
+      - vault-logs:/vault/logs
+      - ./lab/.generated/certs/ca.crt:/seed/ca.crt:ro
+      - ./lab/.generated/certs/vault.crt:/seed/vault.crt:ro
+      - ./lab/.generated/certs/vault.key:/seed/vault.key:ro
+    ports: ["127.0.0.1:8200:8200"]
+    healthcheck: # "running" is enough here (sealed is fine); vault_bootstrap initialises and unseals
+      test: ["CMD-SHELL", "vault status >/dev/null 2>&1; [ $$? -ne 1 ]"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  web01:
+    <<: *host
+    build: { context: lab/host, args: { BASE: "debian:trixie-slim" } }
+    hostname: web01
+    volumes: ["./lab/.generated/hosts/web01:/seed:ro"]
+    ports: ["127.0.0.1:2201:22"]
+
+  db01:
+    <<: *host
+    build: { context: lab/host, args: { BASE: "almalinux:9" } }
+    hostname: db01
+    volumes: ["./lab/.generated/hosts/db01:/seed:ro"]
+    ports: ["127.0.0.1:2202:22"]
+
+  app01:
+    <<: *host
+    build: { context: lab/host, args: { BASE: "ubuntu:24.04" } }
+    hostname: app01
+    volumes: ["./lab/.generated/hosts/app01:/seed:ro"]
+    ports: ["127.0.0.1:2203:22"]
+
+volumes:
+  ldap-config:
+  ldap-data:
+  vault-data:
+  vault-logs:

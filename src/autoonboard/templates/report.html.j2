@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoOnboard PAM Report</title>
+<style>
+  :root { --ink:#1b1f24; --muted:#5b6470; --line:#d9dee4; --bg:#ffffff; --panel:#f5f7f9; --accent:#1f5fa8;
+          --ok:#1e7a46; --warn:#a86400; --bad:#b3261e; --critical:#7a1010; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+  main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 60px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 32px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); break-after: avoid; }
+  h3 { font-size: 13px; margin: 18px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  p.meta { color: var(--muted); margin: 0; }
+  .banner { margin: 14px 0 0; padding: 8px 12px; background: var(--panel); border-left: 4px solid var(--accent); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 18px; }
+  .kpi { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; break-inside: avoid; }
+  .kpi b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .kpi span { color: var(--muted); font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--panel); font-weight: 600; }
+  tr { break-inside: avoid; }
+  td.num, th.num { text-align: right; }
+  code { font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 11px; font-weight: 600; color: #fff; }
+  .low { background: #6b7684; } .medium { background: var(--warn); } .high { background: var(--bad); } .critical { background: var(--critical); }
+  .info { background: #6b7684; } .warning { background: var(--warn); }
+  .pass { color: var(--ok); font-weight: 700; } .fail { color: var(--bad); font-weight: 700; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .small { font-size: 11.5px; color: var(--muted); }
+  pre { background: var(--panel); padding: 8px; overflow-x: auto; font-size: 11px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } main { padding: 16px; } table { display: block; overflow-x: auto; } }
+  @media print { main { max-width: none; padding: 0; } h2 { break-before: auto; } a { color: inherit; text-decoration: none; } }
+</style>
+</head>
+<body>
+<main>
+<h1>Privileged Account Discovery &amp; Onboarding Report</h1>
+<p class="meta">Generated {{ generated_at }} &middot; plan <code>{{ plan.sha256[:12] }}</code> prepared by {{ plan.prepared_by or "n/a" }}{% if approval %} &middot; approved by {{ approval.approver }} at {{ approval.approved_at }}{% endif %}</p>
+<p class="banner">Lab environment: every account, person and credential in this report is fictional. Passwords never appear in this report or in the evidence bundle.</p>
+
+<div class="kpis">
+  <div class="kpi"><b>{{ kpi.discovered }}</b><span>accounts discovered ({{ kpi.ldap }} LDAP, {{ kpi.linux }} Linux)</span></div>
+  <div class="kpi"><b>{{ kpi.privileged }}</b><span>privileged accounts</span></div>
+  <div class="kpi"><b>{{ kpi.onboarded }} / {{ kpi.planned_onboard }}</b><span>vaulted / planned for onboarding ({{ kpi.coverage }}%)</span></div>
+  <div class="kpi"><b>{{ kpi.privileged_vaulted }}</b><span>privileged accounts vaulted</span></div>
+  <div class="kpi"><b>{{ kpi.stale }}</b><span>stale accounts ({{ kpi.stale_privileged }} still privileged)</span></div>
+  <div class="kpi"><b>{{ kpi.remediate }} + {{ kpi.review }}</b><span>remediation + review items</span></div>
+  <div class="kpi"><b>{{ kpi.warnings }} / {{ kpi.critical }}</b><span>warning / critical alerts</span></div>
+  <div class="kpi"><b>{{ kpi.unresolved }}</b><span>unresolved critical alerts</span></div>
+</div>
+
+<h2>Master Policy compliance</h2>
+<table>
+  <tr><th>Check</th><th>Result</th></tr>
+  {% for name, ok in checks %}<tr><td>{{ name }}</td><td class="{{ 'pass' if ok else 'fail' }}">{{ "PASS" if ok else "FAIL" }}</td></tr>{% endfor %}
+</table>
+<p class="small">Master Policy: rotation at most every {{ master_policy.max_rotation_days }} days; approval required: {{ master_policy.approval_required }}; self-approval allowed: {{ master_policy.self_approval_allowed }}; verify after change: {{ master_policy.verify_after_change }}.</p>
+
+<h2>Discovered vs onboarded</h2>
+<div class="cols">
+<div>
+<h3>By classification</h3>
+<table>
+  <tr><th>Label</th><th class="num">Accounts</th></tr>
+  {% for label, n in labels.most_common() %}<tr><td>{{ label }}</td><td class="num">{{ n }}</td></tr>{% endfor %}
+</table>
+</div>
+<div>
+<h3>By source and team</h3>
+<table>
+  <tr><th>Source</th><th>Team</th><th class="num">Accounts</th></tr>
+  {% for (source, team), n in by_source_team %}<tr><td>{{ source }}</td><td>{{ team }}</td><td class="num">{{ n }}</td></tr>{% endfor %}
+</table>
+</div>
+</div>
+
+<h2>Safes and policy coverage</h2>
+<table>
+  <tr><th>Safe</th><th class="num">Accounts</th><th>Platforms</th><th>Members (retrieve)</th><th>Managers (no retrieve)</th><th>Policies</th></tr>
+  {% for s in safes %}
+  <tr><td><code>{{ s.safe }}</code></td><td class="num">{{ s.accounts }}</td><td>{{ s.platforms }}</td>
+      <td>{{ s.members|join(", ") or "-" }}</td><td>{{ s.managers|join(", ") or "-" }}</td>
+      <td class="{{ 'pass' if s.users_policy and s.managers_policy else 'fail' }}">{{ "both present" if s.users_policy and s.managers_policy else "missing" }}</td></tr>
+  {% endfor %}
+</table>
+<h3>Platforms</h3>
+<table>
+  <tr><th>Platform</th><th>Kind</th><th class="num">Rotation (days)</th><th>Description</th></tr>
+  {% for name, p in platforms.items() %}<tr><td><code>{{ name }}</code></td><td>{{ p.kind }}</td><td class="num">{{ p.rotation_days }}</td><td>{{ p.description }}</td></tr>{% endfor %}
+</table>
+
+<h2>Alerts</h2>
+{% if alerts %}
+<table>
+  <tr><th>Time</th><th>Severity</th><th>Event</th><th>Account</th><th>Result</th><th>Detail</th></tr>
+  {% for e in alerts %}<tr><td>{{ e.ts }}</td><td><span class="chip {{ e.severity }}">{{ e.severity }}</span></td><td>{{ e.event }}</td><td><code>{{ e.account }}</code></td><td>{{ e.result }}</td><td>{{ e.get("detail", "") }}</td></tr>{% endfor %}
+</table>
+<p class="small">{{ unresolved|length }} critical alert(s) have no later successful change/verify for the same account.</p>
+{% else %}<p>No alerts.</p>{% endif %}
+
+<h2>Vaulted accounts and rotation state</h2>
+<table>
+  <tr><th>Safe / object</th><th>Platform</th><th>Approved by</th><th>Last change</th><th>Last CPM event</th><th>Overdue</th></tr>
+  {% for m in managed %}
+  <tr><td><code>{{ m.path }}</code></td><td>{{ m.platform }}</td><td>{{ m.approved_by }}</td><td>{{ m.last_change }}</td>
+      <td>{{ m.last_event.event ~ " " ~ m.last_event.result if m.last_event else "-" }}</td>
+      <td class="{{ 'fail' if m.overdue else 'pass' }}">{{ "yes" if m.overdue else "no" }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Stale accounts</h2>
+<table>
+  <tr><th>Account</th><th>Privileged</th><th>Risk</th><th>Evidence</th><th>Risk factors</th></tr>
+  {% for a in stale %}
+  <tr><td><code>{{ a.id }}</code></td><td>{{ "yes" if a.privileged else "no" }}</td>
+      <td><span class="chip {{ a.c.severity }}">{{ a.c.risk_score }}</span></td><td>{{ a.c.reason }}</td><td class="small">{{ a.c.risk_factors|join("; ") }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Remediation and review</h2>
+<table>
+  <tr><th>Action</th><th>Account</th><th>Label</th><th>Risk</th><th>Recommendation</th></tr>
+  {% for i in remediation %}
+  <tr><td>{{ i.action }}</td><td><code>{{ i.id }}</code></td><td>{{ i.label }}</td><td><span class="chip {{ i.severity }}">{{ i.risk_score }}</span></td><td>{{ i.reason }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Credential access (from the Vault audit log)</h2>
+{% if access %}
+<table>
+  <tr><th>Identity</th><th class="num">Credential reads</th></tr>
+  {% for identity, n in access_by_identity %}<tr><td>{{ identity }}</td><td class="num">{{ n }}</td></tr>{% endfor %}
+</table>
+<h3>Latest 40 reads</h3>
+<table>
+  <tr><th>Time (UTC)</th><th>Identity</th><th>Policies</th><th>Path</th><th>Result</th></tr>
+  {% for r in access[-40:] %}<tr><td>{{ r.time }}</td><td>{{ r.identity }}</td><td class="small">{{ r.policies }}</td><td><code>{{ r.path }}</code></td><td class="{{ 'pass' if r.result == 'ok' else 'fail' }}">{{ r.result }}</td></tr>{% endfor %}
+</table>
+{% else %}<p>Audit log not collected.</p>{% endif %}
+
+<h2>Classification accuracy (against seeded ground truth)</h2>
+{% if metrics.get("hybrid") %}
+<p>{{ metrics.mode }}; {{ metrics.labeled }} labeled accounts, {{ metrics.folds }}-fold stratified cross-validation, out-of-fold predictions. Synthetic lab data: these numbers describe separation of the generator's personas, not real-world accuracy.</p>
+<table>
+  <tr><th>Classifier</th><th class="num">Accuracy</th><th class="num">Macro F1</th></tr>
+  {% for k in ("rules", "ml", "hybrid") %}<tr><td>{{ k }}</td><td class="num">{{ "%.1f"|format(metrics[k].accuracy * 100) }}%</td><td class="num">{{ "%.3f"|format(metrics[k].macro_f1) }}</td></tr>{% endfor %}
+</table>
+<div class="cols">
+<div>
+<h3>Per class (hybrid)</h3>
+<table>
+  <tr><th>Label</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th><th class="num">Support</th></tr>
+  {% for label in metrics.confusion_matrix.labels %}{% set r = metrics.hybrid.per_class[label] %}
+  <tr><td>{{ label }}</td><td class="num">{{ "%.3f"|format(r.precision) }}</td><td class="num">{{ "%.3f"|format(r.recall) }}</td><td class="num">{{ "%.3f"|format(r["f1-score"]) }}</td><td class="num">{{ r.support|int }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+<div>
+<h3>Confusion matrix (rows = truth)</h3>
+<table>
+  <tr><th></th>{% for l in metrics.confusion_matrix.labels %}<th class="num">{{ l }}</th>{% endfor %}</tr>
+  {% for row in metrics.confusion_matrix.rows_truth_cols_predicted %}<tr><th>{{ metrics.confusion_matrix.labels[loop.index0] }}</th>{% for n in row %}<td class="num">{{ n }}</td>{% endfor %}</tr>{% endfor %}
+</table>
+</div>
+</div>
+<h3>Misclassified</h3>
+<table>
+  <tr><th>Account</th><th>Truth</th><th>Predicted</th></tr>
+  {% for m in metrics.misclassified %}<tr><td><code>{{ m.id }}</code></td><td>{{ m.truth }}</td><td>{{ m.predicted }}</td></tr>{% endfor %}
+</table>
+{% else %}<p>No ground truth available; rules-only classification.</p>{% endif %}
+
+<h2>CPM activity log</h2>
+<table>
+  <tr><th>Time</th><th>Event</th><th>Account</th><th>Result</th><th>Detail</th></tr>
+  {% for e in history|reverse %}<tr><td>{{ e.ts }}</td><td>{{ e.event }}</td><td><code>{{ e.account }}</code></td><td>{{ e.result }}</td><td class="small">{{ e.get("detail", "") }}</td></tr>{% endfor %}
+</table>
+
+<h2>Vault configuration</h2>
+<p>Audit devices: {% for name, opts in vault.get("audit_devices", {}).items() %}<code>{{ name }}</code> &rarr; {{ opts.get("file_path", opts) }} {% endfor %}<br>
+Auth methods: {{ vault.get("auth_methods", [])|join(", ") }}</p>
+{% for name, rules in vault.get("password_policies", {}).items() %}<h3>Password policy {{ name }}</h3><pre>{{ rules }}</pre>{% endfor %}
+
+<h2>Control mapping (indicative)</h2>
+<table>
+  <tr><th>Control</th><th>Topic</th><th>Evidence in this pipeline</th></tr>
+  {% for c, topic, how in controls %}<tr><td>{{ c }}</td><td>{{ topic }}</td><td>{{ how }}</td></tr>{% endfor %}
+</table>
+</main>
+</body>
+</html>

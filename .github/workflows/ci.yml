@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks scans the full history
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: make lint
+      - run: make test
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  e2e:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Full pipeline on a fresh lab (make demo)
+        run: make demo
+      - name: Upload report and evidence bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoonboard-report
+          path: |
+            out/report/report.html
+            out/report/report.pdf
+            out/evidence/*.zip
+          retention-days: 14

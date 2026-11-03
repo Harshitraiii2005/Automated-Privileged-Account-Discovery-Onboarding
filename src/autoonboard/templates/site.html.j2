@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoOnboard Demo</title>
+<meta name="description" content="Privileged account discovery, ML classification and Vault onboarding: a CyberArk-style PAM workflow rebuilt on open tooling. Results from a real run on fictional data.">
+<style>
+  :root {
+    --bg: #f7f8fa; --surface: #ffffff; --ink: #161b22; --muted: #5a6472; --line: #dde2e8; --soft: #eef1f5;
+    --accent: #1f5fa8; --accent-ink: #ffffff; --ok: #1d7a45; --warn: #a35f00; --bad: #b42318; --crit: #7a1010;
+    --code-bg: #0f1720; --code-ink: #d6e2ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1117; --surface: #151b23; --ink: #e6edf3; --muted: #9aa6b4; --line: #2a333e; --soft: #1b232d;
+      --accent: #5aa2ff; --accent-ink: #0d1117; --ok: #4cc386; --warn: #e3a33b; --bad: #ff7b72; --crit: #ff9b94;
+      --code-bg: #0a0f15; --code-ink: #d6e2ee;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  a { color: var(--accent); }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  header.top { border-bottom: 1px solid var(--line); background: var(--surface); }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; flex-wrap: wrap; }
+  .brand { font-weight: 700; letter-spacing: -.01em; }
+  nav a { margin-left: 16px; text-decoration: none; font-weight: 500; }
+  .hero { padding: 48px 0 24px; }
+  .hero h1 { font-size: clamp(26px, 4.2vw, 40px); line-height: 1.15; margin: 0 0 14px; letter-spacing: -.02em; max-width: 22ch; }
+  .hero p.lead { font-size: 17px; color: var(--muted); max-width: 70ch; margin: 0 0 20px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+  .tag { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 11px; font-size: 13px; color: var(--muted); }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn { display: inline-block; padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; border: 1px solid var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  section { padding: 28px 0; }
+  h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.01em; }
+  p.sub { color: var(--muted); margin: 0 0 18px; max-width: 75ch; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .kpi b { display: block; font-size: 28px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .kpi span { color: var(--muted); font-size: 13px; }
+  ol.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; counter-reset: step; }
+  ol.steps li { counter-increment: step; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 14px 56px; position: relative; }
+  ol.steps li::before { content: counter(step); position: absolute; left: 16px; top: 14px; width: 26px; height: 26px; border-radius: 50%; background: var(--soft); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  ol.steps h3 { margin: 0 0 2px; font-size: 16px; }
+  ol.steps code.cmd { color: var(--muted); }
+  ol.steps p { margin: 4px 0 0; }
+  .timeline { border-left: 2px solid var(--line); margin-left: 6px; padding-left: 18px; display: grid; gap: 14px; }
+  .timeline .ev { position: relative; }
+  .timeline .ev::before { content: ""; position: absolute; left: -25px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); border: 2px solid var(--bg); }
+  .timeline .ev.warning::before { background: var(--warn); } .timeline .ev.critical::before { background: var(--bad); } .timeline .ev.good::before { background: var(--ok); }
+  .ev .when { color: var(--muted); font-size: 12.5px; }
+  .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .table-wrap.scroll { max-height: min(640px, 75vh); overflow-y: auto; }
+  .table-wrap.scroll thead th { position: sticky; top: 0; z-index: 1; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--soft); font-size: 13px; font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; }
+  .chip { display: inline-block; min-width: 2.4em; text-align: center; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; }
+  .chip.low { background: #6b7684; } .chip.medium { background: var(--warn); } .chip.high { background: var(--bad); } .chip.critical { background: var(--crit); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chip { color: #0d1117; } }
+  .pass { color: var(--ok); font-weight: 700; } .fail { color: var(--bad); font-weight: 700; }
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 12px; }
+  .filters label { display: grid; gap: 3px; font-size: 12.5px; color: var(--muted); }
+  .filters select, .filters input[type=search] { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); min-width: 140px; }
+  .filters .check { display: flex; align-items: center; gap: 6px; padding-bottom: 6px; }
+  #acct-body tr.row { cursor: pointer; }
+  #acct-body tr.row:hover td { background: var(--soft); }
+  #acct-body tr.detail td { background: var(--soft); font-size: 13.5px; }
+  .detail ul { margin: 4px 0 0; padding-left: 18px; }
+  .mismatch { color: var(--bad); font-size: 12px; font-weight: 600; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .note { color: var(--muted); font-size: 13.5px; }
+  footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--muted); font-size: 13.5px; margin-top: 20px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } nav a { margin: 0 14px 0 0; } .hero { padding-top: 28px; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="brand">AutoOnboard</span>
+    <nav>
+      <a href="report.html">Full report</a>
+      <a href="report.pdf">PDF</a>
+      {% if repo %}<a href="{{ repo }}">GitHub</a>{% endif %}
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<div class="hero">
+  <h1>Find, classify and vault privileged accounts automatically</h1>
+  <p class="lead">A working re-creation of CyberArk's Accounts Discovery, onboarding and CPM rotation workflow on OpenLDAP, HashiCorp Vault and Linux.
+  Everything on this page comes from one real <code>make demo</code> run against a lab of fictional accounts.</p>
+  <div class="tags">
+    <span class="tag">Run {{ generated_at[:16].replace("T", " ") }} UTC</span>
+    <span class="tag">Fictional data, no credentials</span>
+    <span class="tag">Vault 2.1.2 · OpenLDAP 2.6 · Python</span>
+  </div>
+  <div class="cta">
+    <a class="btn primary" href="#explorer">Explore the accounts</a>
+    <a class="btn" href="report.html">Open the audit report</a>
+    {% if repo %}<a class="btn" href="{{ repo }}">Source on GitHub</a>{% endif %}
+  </div>
+</div>
+
+<section aria-labelledby="kpi-h">
+  <h2 id="kpi-h">The run in numbers</h2>
+  <p class="sub">Discovery to rotation, with every credential verified by a real login.</p>
+  <div class="kpis">
+    <div class="kpi"><b>{{ kpi.discovered }}</b><span>accounts discovered ({{ kpi.ldap }} LDAP, {{ kpi.linux }} Linux)</span></div>
+    <div class="kpi"><b>{{ kpi.privileged }}</b><span>privileged accounts</span></div>
+    <div class="kpi"><b>{{ "%.1f"|format(metrics.hybrid.accuracy * 100) if metrics.get("hybrid") else "n/a" }}%</b><span>classifier accuracy (out-of-fold)</span></div>
+    <div class="kpi"><b>{{ kpi.onboarded }}</b><span>accounts vaulted into {{ safes|length }} safes</span></div>
+    <div class="kpi"><b>{{ kpi.stale }}</b><span>stale accounts ({{ kpi.stale_privileged }} still privileged)</span></div>
+    <div class="kpi"><b>{{ outcome.get("reconcile_success", 0) }}</b><span>out-of-band changes reconciled</span></div>
+    <div class="kpi"><b>{{ checks|selectattr(1)|list|length }}/{{ checks|length }}</b><span>Master Policy checks passing</span></div>
+  </div>
+</section>
+
+<section aria-labelledby="steps-h">
+  <h2 id="steps-h">What happened in this run</h2>
+  <p class="sub">The pipeline is a set of CLI stages; <code>make demo</code> runs them in order on a fresh lab.</p>
+  <ol class="steps">
+    <li><h3>Build the lab</h3><code class="cmd">make lab-up</code>
+      <p>OpenLDAP with {{ kpi.ldap }} fictional accounts, three Linux hosts (Debian, AlmaLinux, Ubuntu) and Vault in production mode with TLS and audit logging. {{ metrics.get("labeled", 0) }} accounts carry seeded ground-truth labels.</p></li>
+    <li><h3>Discover</h3><code class="cmd">autoonboard discover</code>
+      <p>{{ kpi.discovered }} accounts found, {{ kpi.privileged }} privileged, including privilege inherited through nested groups and sudo-via-group. {{ reused_keys }} local accounts hold an SSH key that also unlocks another identity. No password hash is ever read.</p></li>
+    <li><h3>Classify and score risk</h3><code class="cmd">autoonboard classify</code>
+      <p>{% if metrics.get("hybrid") %}Rules {{ "%.1f"|format(metrics.rules.accuracy * 100) }}%, gradient boosting {{ "%.1f"|format(metrics.ml.accuracy * 100) }}%, hybrid {{ "%.1f"|format(metrics.hybrid.accuracy * 100) }}% accuracy over {{ metrics.labeled }} labelled accounts, each predicted by a model that never saw it.{% endif %}
+      Each account also gets an explained 0–100 risk score.</p></li>
+    <li><h3>Plan</h3><code class="cmd">autoonboard plan</code>
+      <p>{% for (action, platform), n in plan_counts %}{{ n }} {{ action }}{% if platform != "-" %} ({{ platform }}){% endif %}{{ ", " if not loop.last }}{% endfor %}.</p></li>
+    <li><h3>Approve (human in the loop)</h3><code class="cmd">autoonboard approve</code>
+      <p>{% if approval %}{{ approval.ids|length }} items approved by <b>{{ approval.approver }}</b>, bound to plan hash <code>{{ approval.plan_sha256[:12] }}</code>. The plan's author is not allowed to approve it.{% else %}No approval on file.{% endif %}</p></li>
+    <li><h3>Onboard</h3><code class="cmd">autoonboard onboard --dry-run &amp;&amp; autoonboard onboard</code>
+      <p>{{ kpi.onboarded }} accounts vaulted into {{ safes|length }} safes, each with member and manager policies mapped to directory groups. Every password was changed on import and then verified by logging in.</p></li>
+    <li><h3>Rotate, verify, reconcile</h3><code class="cmd">autoonboard cpm</code>
+      <p>{{ outcome.get("verify_success", 0) }} successful verifications, {{ outcome.get("change_success", 0) }} password changes, {{ outcome.get("reconcile_success", 0) }} reconciles after simulated out-of-band changes, {{ outcome.get("reconcile_failure", 0) }} failure that needed manual intervention.</p></li>
+    <li><h3>Report and evidence</h3><code class="cmd">autoonboard report --pdf &amp;&amp; autoonboard evidence</code>
+      <p><a href="report.html">HTML report</a> and <a href="report.pdf">PDF</a> with {{ checks|selectattr(1)|list|length }}/{{ checks|length }} Master Policy checks passing, plus a hashed evidence bundle for auditors.</p></li>
+  </ol>
+</section>
+
+<section aria-labelledby="story-h">
+  <h2 id="story-h">Incident timeline: what the CPM did when someone went around the vault</h2>
+  <p class="sub">Lab scenarios change two passwords behind the vault's back and expire a third account. The next CPM cycle has to notice.</p>
+  <div class="timeline">
+    {% for e in story %}
+    {% set good = e.result in ("success", "allowed", "restored") or (e.event == "access-check" and e.severity == "info") %}
+    <div class="ev {{ e.severity if e.severity != 'info' else ('good' if good else '') }}">
+      <div class="when mono">{{ e.ts[11:19] }} UTC · {{ e.event }} · {{ e.result }}</div>
+      <div><code>{{ e.account }}</code>{% if e.get("detail") %}: {{ e.detail }}{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section id="explorer" aria-labelledby="explorer-h">
+  <h2 id="explorer-h">Account explorer</h2>
+  <p class="sub">Every discovered account with its label, risk and onboarding decision. Click a row for the evidence behind it. Rows marked “truth” are where the classifier disagreed with the seeded ground truth.</p>
+  <div class="filters">
+    <label>Source<select id="f-src"><option value="">all</option><option>ldap</option><option>linux</option></select></label>
+    <label>Label<select id="f-label"><option value="">all</option>{% for l in ("human_admin", "service", "shared", "stale", "standard") %}<option>{{ l }}</option>{% endfor %}</select></label>
+    <label>Minimum severity<select id="f-sev"><option value="">any</option><option>medium</option><option>high</option><option>critical</option></select></label>
+    <label>Search<input id="f-q" type="search" placeholder="name, host or team"></label>
+    <label class="check"><input id="f-wrong" type="checkbox"> misclassified only</label>
+  </div>
+  <p class="note" id="acct-count" aria-live="polite"></p>
+  <div class="table-wrap scroll">
+    <table>
+      <thead><tr><th>Account</th><th>Label</th><th class="num">Risk</th><th>Privilege</th><th>Decision</th></tr></thead>
+      <tbody id="acct-body"></tbody>
+    </table>
+  </div>
+</section>
+
+{% if metrics.get("hybrid") %}
+<section aria-labelledby="ml-h">
+  <h2 id="ml-h">How good is the classifier?</h2>
+  <p class="sub">Five-fold stratified cross-validation, out-of-fold predictions only. Synthetic data flatters any model: these numbers describe how well the pipeline separates the generator's personas, not real-world accuracy.</p>
+  <div class="grid2">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Classifier</th><th class="num">Accuracy</th><th class="num">Macro F1</th></tr></thead>
+        <tbody>{% for k in ("rules", "ml", "hybrid") %}<tr><td>{{ {"rules": "Rules only", "ml": "Gradient boosting", "hybrid": "Hybrid (stale rules + model)"}[k] }}</td><td class="num">{{ "%.1f"|format(metrics[k].accuracy * 100) }}%</td><td class="num">{{ "%.3f"|format(metrics[k].macro_f1) }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>truth ↓ / predicted →</th>{% for l in metrics.confusion_matrix.labels %}<th class="num">{{ l }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in metrics.confusion_matrix.rows_truth_cols_predicted %}<tr><th>{{ metrics.confusion_matrix.labels[loop.index0] }}</th>{% for n in row %}<td class="num">{{ n }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+  <p class="note">All {{ metrics.misclassified|length }} errors: {% for m in metrics.misclassified %}<code>{{ m.id }}</code> ({{ m.truth }} → {{ m.predicted }}){{ ", " if not loop.last }}{% endfor %}.</p>
+</section>
+{% endif %}
+
+<section aria-labelledby="safes-h">
+  <h2 id="safes-h">Safes and who can use them</h2>
+  <p class="sub">Members (the owning team's directory group) may retrieve; managers (the PAM team) may rotate but never retrieve.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Safe</th><th class="num">Accounts</th><th>Platforms</th><th>Members</th><th>Managers</th></tr></thead>
+      <tbody>{% for s in safes %}<tr><td><code>{{ s.safe }}</code></td><td class="num">{{ s.accounts }}</td><td>{{ s.platforms }}</td><td>{{ s.members|join(", ") }}</td><td>{{ s.managers|join(", ") }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="policy-h">
+  <h2 id="policy-h">Master Policy</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Check</th><th>Result</th></tr></thead>
+      <tbody>{% for name, ok in checks %}<tr><td>{{ name }}</td><td class="{{ 'pass' if ok else 'fail' }}">{{ "PASS" if ok else "FAIL" }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="map-h">
+  <h2 id="map-h">CyberArk concepts, mapped</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>CyberArk</th><th>Here</th></tr></thead>
+      <tbody>
+        <tr><td>Accounts Discovery</td><td>LDAP (nested groups, password age, last logon, disabled) + Linux collector (sudoers, SSH keys, password status)</td></tr>
+        <tr><td>Pending accounts &amp; dual control</td><td>Onboarding plan + approval bound to the plan's SHA-256; no self-approval</td></tr>
+        <tr><td>Safe &amp; members</td><td>KV v2 folder + member/manager ACL policies mapped to directory groups</td></tr>
+        <tr><td>Platform</td><td>Rotation period + Vault password policy + verify/reconcile method</td></tr>
+        <tr><td>CPM change / verify</td><td>Vault static roles for LDAP; own CPM for Linux; verify = a real login</td></tr>
+        <tr><td>Reconcile account</td><td>Vault's rotator (password known only to Vault) and a Linux reconcile account whose key lives only in Vault</td></tr>
+        <tr><td>Master Policy</td><td>Global rules checked in every report</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    Every account, person and credential shown here is fictional; no password appears anywhere on this page.
+    Generated {{ generated_at }} by <code>autoonboard site</code>{% if repo %} · <a href="{{ repo }}">source</a>{% endif %}.
+  </div>
+</footer>
+
+<script id="accounts" type="application/json">{{ accounts|tojson }}</script>
+<script>
+(() => {
+  const rows = JSON.parse(document.getElementById("accounts").textContent);
+  const rank = { low: 0, medium: 1, high: 2, critical: 3 };
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+  const logon = (r) => r.logon !== null ? `last logon ${r.logon} days ago` : r.src === "ldap" ? "never logged on" : "last logon not collected on Linux";
+  const pwd = (r) => r.pwd !== null ? `password age ${r.pwd} days` : "no password age";
+
+  function detail(r) {
+    const facts = el("ul");
+    for (const f of r.factors) facts.append(el("li", { textContent: f }));
+    if (!r.factors.length) facts.append(el("li", { textContent: "no risk factors" }));
+    const cell = el("td", { colSpan: 5 },
+      el("div", { textContent: `Why "${r.label}": ${r.reason}` + (r.truth && r.truth !== r.label ? ` (ground truth: ${r.truth})` : "") }),
+      el("div", { textContent: `Team ${r.team} · ${logon(r)} · ${pwd(r)}` }),
+      el("div", { textContent: "Risk factors:" }), facts,
+      el("div", { textContent: r.action ? `Decision: ${r.action}${r.target ? " → " + r.target : ""}: ${r.why}` : "Decision: no action" }));
+    return el("tr", { className: "detail" }, cell);
+  }
+
+  function row(r) {
+    const label = el("td", {}, r.label || "?");
+    if (r.truth && r.truth !== r.label) label.append(" ", el("span", { className: "mismatch", textContent: "truth: " + r.truth }));
+    const tr = el("tr", { className: "row", tabIndex: 0 },
+      el("td", {}, el("code", { textContent: r.id })),
+      label,
+      el("td", { className: "num" }, el("span", { className: "chip " + r.sev, textContent: r.risk })),
+      el("td", { textContent: r.priv ? (r.groups.join(", ") || "yes") : "" }),
+      el("td", { textContent: r.action ? r.action + (r.target ? " → " + r.target : "") : "" }));
+    const toggle = () => {
+      if (tr.nextSibling && tr.nextSibling.className === "detail") tr.nextSibling.remove();
+      else tr.after(detail(r));
+    };
+    tr.addEventListener("click", toggle);
+    tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+    return tr;
+  }
+
+  function render() {
+    const src = $("f-src").value, label = $("f-label").value, sev = $("f-sev").value;
+    const q = $("f-q").value.trim().toLowerCase(), wrong = $("f-wrong").checked;
+    const shown = rows.filter((r) =>
+      (!src || r.src === src) && (!label || r.label === label) && (!sev || rank[r.sev] >= rank[sev]) &&
+      (!q || r.id.toLowerCase().includes(q) || r.team.toLowerCase().includes(q)) && (!wrong || (r.truth && r.truth !== r.label)));
+    $("acct-count").textContent = `${shown.length} of ${rows.length} accounts, highest risk first`;
+    $("acct-body").replaceChildren(...shown.map(row));
+  }
+
+  for (const id of ["f-src", "f-label", "f-sev", "f-q", "f-wrong"]) $(id).addEventListener("input", render);
+  render();
+})();
+</script>
+</body>
+</html>

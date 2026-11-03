@@ -1,0 +1,10 @@
+#!/bin/sh
+# AutoOnboard CPM: set USER's password to the single line read from stdin. Reading stdin (never argv)
+# keeps the password out of `ps` and shell history. Only the CPM reconcile account may sudo this.
+set -eu
+[ $# -eq 1 ] || { echo "usage: autoonboard-setpw USER < password" >&2; exit 2; }
+case "$1" in '' | *[!a-z0-9._-]*) echo "invalid user name" >&2; exit 2 ;; esac
+getent passwd "$1" >/dev/null || { echo "no such user: $1" >&2; exit 3; }
+IFS= read -r pw
+[ ${#pw} -ge 16 ] || { echo "refusing a password shorter than 16 characters" >&2; exit 4; }
+printf '%s:%s\n' "$1" "$pw" | chpasswd

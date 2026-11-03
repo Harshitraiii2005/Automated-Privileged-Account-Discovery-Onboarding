@@ -1,0 +1,84 @@
+# cn=config for the AutoOnboard lab directory. @ROOTPW@ is replaced with an argon2 hash at first boot.
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+olcArgsFile: /run/slapd/slapd.args
+olcPidFile: /run/slapd/slapd.pid
+olcLogLevel: stats
+olcDisallows: bind_anon
+olcSecurity: simple_bind=128
+olcTLSCACertificateFile: /etc/ldap/tls/ca.crt
+olcTLSCertificateFile: /etc/ldap/tls/ldap.crt
+olcTLSCertificateKeyFile: /etc/ldap/tls/ldap.key
+olcTLSProtocolMin: 3.3
+
+dn: cn=module{0},cn=config
+objectClass: olcModuleList
+cn: module{0}
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: {0}back_mdb
+olcModuleLoad: {1}ppolicy
+olcModuleLoad: {2}argon2
+
+dn: cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: schema
+
+include: file:///etc/ldap/schema/core.ldif
+include: file:///etc/ldap/schema/cosine.ldif
+include: file:///etc/ldap/schema/inetorgperson.ldif
+
+dn: olcDatabase={-1}frontend,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcFrontendConfig
+olcDatabase: {-1}frontend
+olcPasswordHash: {ARGON2}
+olcRequires: authc
+olcSizeLimit: 1000
+
+dn: olcDatabase={0}config,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: {0}config
+olcAccess: {0}to * by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by * break
+
+dn: olcDatabase={1}mdb,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcMdbConfig
+olcDatabase: {1}mdb
+olcDbDirectory: /var/lib/ldap
+olcSuffix: dc=autoonboard,dc=lab
+olcRootDN: cn=admin,dc=autoonboard,dc=lab
+olcRootPW: @ROOTPW@
+olcDbMaxSize: 268435456
+# Built-in since 2.5: record each successful bind in pwdLastSuccess (AD lastLogonTimestamp analogue).
+olcLastBind: TRUE
+olcLastBindPrecision: 60
+olcDbIndex: objectClass eq
+olcDbIndex: uid eq
+olcDbIndex: cn eq
+olcDbIndex: member eq
+# Least privilege: Vault's bind account may write passwords; the discovery scanner can read
+# everything (including ppolicy/lastbind operational attributes) except password hashes.
+olcAccess: {0}to attrs=userPassword
+  by dn.exact="cn=vault-rotator,ou=System,dc=autoonboard,dc=lab" write
+  by self =xw
+  by anonymous auth
+  by * none
+olcAccess: {1}to dn.subtree="ou=System,dc=autoonboard,dc=lab"
+  by self read
+  by anonymous auth
+  by * none
+olcAccess: {2}to *
+  by dn.exact="cn=vault-rotator,ou=System,dc=autoonboard,dc=lab" read
+  by dn.exact="cn=discovery-scanner,ou=System,dc=autoonboard,dc=lab" read
+  by users read
+  by anonymous auth
+  by * none
+
+dn: olcOverlay={0}ppolicy,olcDatabase={1}mdb,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcPPolicyConfig
+olcOverlay: {0}ppolicy
+olcPPolicyDefault: cn=default,ou=Policies,dc=autoonboard,dc=lab
+olcPPolicyHashCleartext: TRUE
+olcPPolicyUseLockout: FALSE
